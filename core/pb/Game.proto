@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package game;
+option go_package="pb";
+
+message Card {
+  enum Type {
+    BLUE = 0;
+    RED = 1;
+    ASSASSIN = 2;
+    CIVILIAN = 3;
+  }
+  int32 X1 = 1;
+  int32 Y1 = 2;
+  int32 X2 = 3;
+  int32 Y2 = 4;
+  bool Active = 5;
+  string Content = 6;
+  Type type = 7;
+}
+
+message Game {
+  string Id = 1;
+  repeated Card cards = 2;
+}
+
+message CreateGameRequest {
+  Game game = 1;
+}
+
+message CreateGameResponse {
+  Game game = 1;
+}
+
+message JoinGameRequest {
+  string Id = 1;
+}
+
+message JoinGameResponse {
+  Game game = 1;
+}
+
+message UpdateGameRequest {
+  string Id = 1;
+  string Content = 2;
+}
+
+message UpdateGameResponse {
+  string Id = 1;
+}
+
+service GameService {
+  rpc CreateGame(CreateGameRequest) returns (CreateGameResponse) {}
+  rpc JoinGame(JoinGameRequest) returns (stream JoinGameResponse) {}
+  rpc UpdateGame(UpdateGameRequest) returns (UpdateGameResponse) {}
+}
