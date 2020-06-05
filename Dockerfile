@@ -5,4 +5,11 @@ RUN apk add --no-cache git mercurial
 RUN apk add --update gcc
 RUN apk add --update g++
 
-RUN go get github.com/alabianca/codernames
+RUN git clone https://github.com/alabianca/codernames.git
+WORKDIR codernames/cmd/codernames
+
+COPY . .
+
+RUN go build -o codernames
+
+CMD ["./codernames", "-serve"]

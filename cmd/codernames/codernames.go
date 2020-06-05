@@ -46,7 +46,7 @@ func main() {
 func client_main(create bool, join, joinAsMaster, source string) int {
 	// open up the connection to the server
 	// @todo add security
-	conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
+	conn, err := grpc.Dial(":50051", grpc.WithInsecure())
 	if err != nil {
 		log.Printf("Error dialing %s\n", err)
 		return 1
@@ -61,6 +61,7 @@ func client_main(create bool, join, joinAsMaster, source string) int {
 	file, err := os.Open(source)
 	if err != nil {
 		log.Printf("Could not open provided file %v\n", err)
+		return 1
 	}
 
 	defer file.Close()
@@ -112,7 +113,7 @@ func client_main(create bool, join, joinAsMaster, source string) int {
 
 func server_main() int {
 	// set up mongodb connection
-	client, err := mongod.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+	client, err := mongod.NewClient(options.Client().ApplyURI(mongoURI()))
 	if err != nil {
 		log.Printf("Error Creating Database client (mongodb) %v\n", err)
 		return 1
@@ -128,10 +129,15 @@ func server_main() int {
 		return 1
 	}
 
+	if err := client.Ping(context.Background(), nil); err != nil {
+		log.Fatal("Could not connect to mongodb with provided server selection timeout")
+		return 1
+	}
+
 	collection := client.Database("codernames").Collection("games")
 
 	// set up the tcp listener required by the grpc server later
-	lis, err := net.Listen("tcp", "localhost:50051")
+	lis, err := net.Listen("tcp", "0.0.0.0:50051")
 	if err != nil {
 		log.Printf("Error trying to listen %v\n", err)
 		return 1
@@ -164,4 +170,20 @@ func server_main() int {
 
 	return 0
 
+}
+
+func mongoURI() string {
+	host := getEnv("db_host", "localhost")
+	port := getEnv("db_port", "27017")
+
+	return fmt.Sprintf("mongodb://%s:%s", host, port)
+}
+
+func getEnv(key, def string) string {
+	env := os.Getenv(key)
+	if env == "" {
+		return def
+	}
+
+	return env
 }

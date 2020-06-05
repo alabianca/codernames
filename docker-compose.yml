@@ -1,0 +1,18 @@
+version: '3'
+services:
+  mongo:
+    image: mongo
+    restart: always
+
+  codernames:
+    build: .
+    depends_on:
+      - mongo
+    environment:
+      - db_name=codernames
+      - db_type=mongodb
+      - db_host=mongo
+      - db_port=27017
+
+    ports:
+      - "50051:50051"
