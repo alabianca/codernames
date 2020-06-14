@@ -10,7 +10,7 @@ const GameSize = 25
 
 type GameDAL interface {
 	Activate(id string, content string, doc interface{}) error
-	Create(interface{}) error
+	Create(interface{})  error
 	Get(interface{}) error
 }
 

@@ -1,7 +1,8 @@
 package server
 
 import (
-	"github.com/alabianca/codernames/core/mongo/models"
+	"fmt"
+	"github.com/alabianca/codernames/core/bolt/models"
 	"sync"
 )
 
@@ -36,6 +37,7 @@ func (p *PubSub) Subscribe(topic string) <-chan models.Game {
 
 	out := make(chan models.Game, 1) // important to buffer the channel
 	p.topics[topic] = append(p.topics[topic], out)
+	fmt.Println("Subscribed to ", topic)
 
 	return out
 }

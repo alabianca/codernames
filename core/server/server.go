@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/alabianca/codernames/core"
-	"github.com/alabianca/codernames/core/mongo/models"
+	"github.com/alabianca/codernames/core/bolt/models"
 	"github.com/alabianca/codernames/core/pb"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"log"
 )
 
 var protoCardTypeMapping = map[pb.Card_Type]models.CardType{
@@ -36,7 +34,6 @@ func NewGameService(dal core.GameDAL) *Server {
 }
 
 func (s *Server) CreateGame(ctx context.Context, request *pb.CreateGameRequest) (*pb.CreateGameResponse, error) {
-	log.Println("Create Game")
 	var game models.Game
 
 	for _, c := range request.Game.GetCards() {
@@ -58,7 +55,7 @@ func (s *Server) CreateGame(ctx context.Context, request *pb.CreateGameRequest) 
 	var res pb.CreateGameResponse
 	var createdGame pb.Game
 
-	createdGame.Id = game.ID.Hex()
+	createdGame.Id = game.ID
 	for _, card := range game.Cards {
 		c := &pb.Card{
 			X1:      card.X1,
@@ -79,14 +76,10 @@ func (s *Server) CreateGame(ctx context.Context, request *pb.CreateGameRequest) 
 
 func (s *Server) JoinGame(req *pb.JoinGameRequest, stream pb.GameService_JoinGameServer) error {
 	var game models.Game
-	id, err := primitive.ObjectIDFromHex(req.Id)
-	if err != nil {
-		return status.Errorf(codes.Internal, fmt.Sprintf("Could not convert id to object id %v", err))
-	}
 
-	game.ID = id
+	game.ID = req.GetId()
 
-	err = s.Game.Get(&game)
+	err := s.Game.Get(&game)
 	if err != nil {
 		return status.Errorf(codes.Internal, fmt.Sprintf("Could not find game %v", err))
 	}
@@ -95,6 +88,7 @@ func (s *Server) JoinGame(req *pb.JoinGameRequest, stream pb.GameService_JoinGam
 	s.updateStream(stream, game)
 	// subscribe to the game to receive updates
 	for g := range s.pubsub.Subscribe(req.Id) {
+		fmt.Println("Sending an update stream message")
 		s.updateStream(stream, g)
 	}
 
@@ -110,7 +104,7 @@ func (s *Server) UpdateGame(ctx context.Context, req *pb.UpdateGameRequest) (*pb
 	}
 
 	var res pb.UpdateGameResponse
-	res.Id = game.ID.Hex()
+	res.Id = game.ID
 	// publish the new game state to all subscribed clients
 	s.pubsub.Publish(res.Id, game)
 
@@ -118,13 +112,15 @@ func (s *Server) UpdateGame(ctx context.Context, req *pb.UpdateGameRequest) (*pb
 }
 
 func (s *Server) updateStream(stream pb.GameService_JoinGameServer, game models.Game) {
-	stream.Send(makeGameResponse(game))
+	if err := stream.Send(makeGameResponse(game)); err != nil {
+		fmt.Println("Error sending an update message into the stream")
+	}
 
 }
 
 func makeGameResponse(inGame models.Game) *pb.JoinGameResponse {
 	var game pb.Game
-	game.Id = inGame.ID.Hex()
+	game.Id = inGame.ID
 	for _, card := range inGame.Cards {
 		c := pb.Card{
 			Content: card.Content,
