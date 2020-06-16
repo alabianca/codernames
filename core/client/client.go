@@ -156,6 +156,8 @@ func (c *Client) createGame(ctx context.Context) (string, error) {
 // joinGame joins the client to the game and sends card messages to the render channel everytime
 // a new message is received from the server. A new message is essentially an updated game state
 func (c *Client) joinGame(ctx context.Context, id string, render chan<- core.Card) {
+	defer close(render)
+
 	req := pb.JoinGameRequest{
 		Id: id,
 	}

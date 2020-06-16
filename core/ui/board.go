@@ -111,7 +111,10 @@ func (b *Board) Render(renderc chan core.Card, gameCreated chan string, update c
 		case id := <-gameCreated:
 			summaryCard.paragraph.Text = summaryText(id)
 			ui.Render(summaryCard.paragraph)
-		case c := <-renderc:
+		case c, open := <-renderc:
+			if !open {
+				return
+			}
 			card := NewCard(c.GetContent(), CardType(c.GetType()), c.IsActive() || b.IsSpyMaster)
 			coords := c.Coords()
 			card.paragraph.SetRect(int(coords.X1), int(coords.Y1), int(coords.X2), int(coords.Y2))

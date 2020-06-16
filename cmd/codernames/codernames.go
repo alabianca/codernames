@@ -19,17 +19,17 @@ import (
 )
 
 var (
-	flagServe        *bool
-	flagCreate       *bool
-	flagJoin         *string
-	flagJoinAsMaster *string
-	flagSource       *string
+	flagServe           *bool
+	flagCreate          *bool
+	flagJoin            *string
+	flagJoinAsSpymaster *string
+	flagSource          *string
 )
 
 func main() {
 	flagServe = flag.Bool("serve", false, "If this is set the server will start")
 	flagCreate = flag.Bool("create", false, "Create a game and join it as a spy master")
-	flagJoinAsMaster = flag.String("master", "", "join a given game as a spy master")
+	flagJoinAsSpymaster = flag.String("spym", "", "join a given game as a spy master")
 	flagJoin = flag.String("join", "", "join a given game")
 	flagSource = flag.String("source", "", "Use words at the given path as the words being used in the game")
 	flag.Parse()
@@ -37,11 +37,11 @@ func main() {
 	if *flagServe {
 		os.Exit(server_main())
 	} else {
-		os.Exit(client_main(*flagCreate, *flagJoin, *flagJoinAsMaster, *flagSource))
+		os.Exit(client_main(*flagCreate, *flagJoin, *flagJoinAsSpymaster, *flagSource))
 	}
 }
 
-func client_main(create bool, join, joinAsMaster, source string) int {
+func client_main(create bool, join, joinAsSpymaster, source string) int {
 	// open up the connection to the server
 	// @todo add security
 	conn, err := grpc.Dial(":50051", grpc.WithInsecure())
@@ -77,9 +77,9 @@ func client_main(create bool, join, joinAsMaster, source string) int {
 		if len(join) > 0 {
 			roomId = join
 		} else {
-			roomId = joinAsMaster
+			roomId = joinAsSpymaster
 		}
-		clientOpts = append(clientOpts, client.JoinId(roomId, len(joinAsMaster) > 0))
+		clientOpts = append(clientOpts, client.JoinId(roomId, len(joinAsSpymaster) > 0))
 	}
 
 	// create the client.
@@ -90,7 +90,7 @@ func client_main(create bool, join, joinAsMaster, source string) int {
 	)
 
 	// create the board
-	board := ui.NewBoard(create)
+	board := ui.NewBoard(create || len(joinAsSpymaster) > 0)
 	// the done channel is closed once the ui is closed.
 	// closing the done channel will end the client.Run goroutine
 	done := make(chan struct{})
